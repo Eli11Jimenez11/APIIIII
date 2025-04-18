@@ -56,6 +56,7 @@ class CustomAuthTokenSerializer(serializers.Serializer):
             raise serializers.ValidationError('El usuario está inactivo.')
 
         return {
+            'id': user.id,
             'email': user.email,
             'is_active': user.is_active,
         }
