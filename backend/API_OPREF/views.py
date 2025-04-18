@@ -120,13 +120,14 @@ class CustomTokenObtainPairView(APIView):
         if serializer.is_valid():
             email = serializer.validated_data['email']
             password = serializer.validated_data['password']
-            
-            # Autenticamos al usuario directamente
-            user = authenticate(username=email, password=password)
-            if user is None:
+
+            try:
+                user = User.objects.get(email=email)
+                if not user.check_password(password):
+                    return Response({'detail': 'Correo electrónico o contraseña incorrectos.'}, status=status.HTTP_401_UNAUTHORIZED)
+            except User.DoesNotExist:
                 return Response({'detail': 'Correo electrónico o contraseña incorrectos.'}, status=status.HTTP_401_UNAUTHORIZED)
 
-            # Generamos el token JWT
             refresh = RefreshToken.for_user(user)
             return Response({
                 'access': str(refresh.access_token),

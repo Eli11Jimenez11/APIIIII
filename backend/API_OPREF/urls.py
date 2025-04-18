@@ -18,10 +18,10 @@ router.register(r'servicios', ServicioViewSet)
 router.register(r'novedades', NovedadViewSet)
 
 urlpatterns = [
-    path('', include(router.urls)),  # Rutas de la API
-    path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('refresh/', TokenRefreshView.as_view(), name='token_refresh'), # La vista personalizada para la página de login
-    path('token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),  # Aquí puedes gestionar el login JWT
-    path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
-    path('password-reset/verify/', PasswordResetVerifyView.as_view(), name='password-reset-verify'),path('crear-admin/', CreateAdminView.as_view(), name='crear-admin'),
+    path('api/', include(router.urls)),
+    path('api/login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),  # <- cambio aquí
+    path('api/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('api/password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
+    path('api/password-reset/verify/', PasswordResetVerifyView.as_view(), name='password-reset-verify'),
+    path('api/crear-admin/', CreateAdminView.as_view(), name='crear-admin'),
 ]
