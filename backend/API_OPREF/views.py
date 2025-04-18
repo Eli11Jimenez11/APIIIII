@@ -7,12 +7,18 @@ from rest_framework_simplejwt.tokens import RefreshToken
 from .serializers import CustomAuthTokenSerializer
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail
-from django.utils.crypto import get_random_string
-from django.utils import timezone 
+from django.conf import settings
+from django.utils import timezone
 from datetime import timedelta
-from .models import Contrato, Cotizacion, Servicio, Novedad, PasswordResetCode
+from django.utils.crypto import get_random_string
+from .models import Contrato, Cotizacion, Servicio, Novedad, PasswordResetCode, User
 from .serializers import (
-    ContratoSerializer, CotizacionSerializer, ServicioSerializer, NovedadSerializer, PasswordResetRequestSerializer, PasswordResetVerifySerializer
+    ContratoSerializer,
+    CotizacionSerializer,
+    ServicioSerializer,
+    NovedadSerializer,
+    PasswordResetRequestSerializer,
+    PasswordResetVerifySerializer
 )
 from django.contrib.auth import get_user_model
 User = get_user_model()
@@ -41,27 +47,32 @@ class PasswordResetRequestView(APIView):
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
-            
-            if not User.objects.filter(email=email).exists():
-                return Response({"detail": "Correo no encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
-            if PasswordResetCode.objects.filter(email=email, created_at__gt=timezone.now()-timedelta(minutes=10)).exists():
-                return Response({"detail": "Ya se ha enviado un código de recuperación recientemente. Intenta nuevamente en unos minutos."}, status=status.HTTP_400_BAD_REQUEST)
+            try:
+                user = User.objects.get(email=email)
+            except User.DoesNotExist:
+                return Response({'error': 'Este correo no está registrado.'}, status=status.HTTP_400_BAD_REQUEST)
 
+            # Generar código
             code = get_random_string(length=6, allowed_chars='0123456789')
-            reset_code = PasswordResetCode.objects.create(email=email, code=code)
 
+            # Borrar códigos anteriores y guardar nuevo
+            PasswordResetCode.objects.filter(email=email).delete()
+            PasswordResetCode.objects.create(email=email, code=code)
+
+            # Enviar correo
             send_mail(
                 'Código de recuperación de contraseña',
                 f'Tu código de recuperación es: {code}',
-                'no-reply@opref.com',
+                settings.DEFAULT_FROM_EMAIL,
                 [email],
-                fail_silently=False,
+                fail_silently=False
             )
 
-            return Response({"detail": "Código de recuperación enviado al correo"}, status=status.HTTP_200_OK)
-
+            return Response({'message': 'Se ha enviado un código de recuperación a tu correo.'}, status=status.HTTP_200_OK)
+        
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 
 class PasswordResetVerifyView(APIView):
@@ -73,6 +84,10 @@ class PasswordResetVerifyView(APIView):
             new_password = serializer.validated_data['new_password']
 
             try:
+                PasswordResetCode.objects.filter(
+                    email=email, 
+                    created_at__lt=timezone.now() - timedelta(minutes=10)
+                ).delete()
                 # Verifica si el código es válido
                 reset_code = PasswordResetCode.objects.get(email=email, code=code)
 
