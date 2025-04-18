@@ -1,5 +1,4 @@
 from rest_framework import viewsets
-from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import JsonResponse
@@ -15,6 +14,8 @@ from .models import Contrato, Cotizacion, Servicio, Novedad, PasswordResetCode
 from .serializers import (
     ContratoSerializer, CotizacionSerializer, ServicioSerializer, NovedadSerializer, PasswordResetRequestSerializer, PasswordResetVerifySerializer
 )
+from django.contrib.auth import get_user_model
+User = get_user_model()
 
 def home(request):
     return JsonResponse({'mensaje': 'API OPREF funcionando correctamente 🚀'})
@@ -35,39 +36,34 @@ class NovedadViewSet(viewsets.ModelViewSet):
     queryset = Novedad.objects.all()
     serializer_class = NovedadSerializer
 
-
 class PasswordResetRequestView(APIView):
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         if serializer.is_valid():
             email = serializer.validated_data['email']
             
-            # Verifica si el correo existe
             if not User.objects.filter(email=email).exists():
                 return Response({"detail": "Correo no encontrado"}, status=status.HTTP_404_NOT_FOUND)
 
-            # Verifica si ya existe un código de restablecimiento no expirado
             if PasswordResetCode.objects.filter(email=email, created_at__gt=timezone.now()-timedelta(minutes=10)).exists():
                 return Response({"detail": "Ya se ha enviado un código de recuperación recientemente. Intenta nuevamente en unos minutos."}, status=status.HTTP_400_BAD_REQUEST)
-            
-            # Genera un código aleatorio
-            code = get_random_string(length=6, allowed_chars='0123456789')
 
-            # Guarda el código en la base de datos
+            code = get_random_string(length=6, allowed_chars='0123456789')
             reset_code = PasswordResetCode.objects.create(email=email, code=code)
 
-            # Envía el correo con el código
             send_mail(
                 'Código de recuperación de contraseña',
                 f'Tu código de recuperación es: {code}',
-                'no-reply@opref.com',  # Cambia este correo
+                'no-reply@opref.com',
                 [email],
                 fail_silently=False,
             )
 
             return Response({"detail": "Código de recuperación enviado al correo"}, status=status.HTTP_200_OK)
-        
+
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
 class PasswordResetVerifyView(APIView):
     def post(self, request):
         serializer = PasswordResetVerifySerializer(data=request.data)
