@@ -8,6 +8,7 @@ from .views import (
 from django.http import HttpResponse
 from .create_admin_view import CreateAdminView
 from django.contrib import admin
+from .views import home
 
 def login_welcome(request):
     return HttpResponse("Bienvenido a OPREF. Accede con tus credenciales.")
@@ -19,6 +20,7 @@ router.register(r'servicios', ServicioViewSet)
 router.register(r'novedades', NovedadViewSet)
 
 urlpatterns = [
+    path('', home),  # <<< Esto agrega la raíz
     path('admin/', admin.site.urls),
     path('', include(router.urls)),  # Rutas de la API
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
