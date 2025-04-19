@@ -46,18 +46,15 @@ class CustomAuthTokenSerializer(serializers.Serializer):
         if email is None or password is None:
             raise serializers.ValidationError('Debe proporcionar tanto el correo como la contraseña.')
 
-        # Usamos el email como 'username' en el proceso de autenticación
         user = authenticate(username=email, password=password)
-        
+
         if user is None:
             raise serializers.ValidationError('Correo electrónico o contraseña incorrectos.')
 
         if not user.is_active:
             raise serializers.ValidationError('El usuario está inactivo.')
 
-        return {
-            'id': user.id,
-            'email': user.email,
-            'is_active': user.is_active,
-        }
+        data['user'] = user  # <-- Agregas el user al data
+        return data
+
         

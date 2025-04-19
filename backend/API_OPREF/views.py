@@ -120,15 +120,7 @@ class CustomTokenObtainPairView(APIView):
         serializer = CustomAuthTokenSerializer(data=request.data)
 
         if serializer.is_valid():
-            email = serializer.validated_data['email']
-            password = serializer.validated_data['password']
-
-            try:
-                user = User.objects.get(email=email)
-                if not user.check_password(password):
-                    return Response({'detail': 'Correo electrónico o contraseña incorrectos.'}, status=status.HTTP_401_UNAUTHORIZED)
-            except User.DoesNotExist:
-                return Response({'detail': 'Correo electrónico o contraseña incorrectos.'}, status=status.HTTP_401_UNAUTHORIZED)
+            user = serializer.validated_data['user']
 
             refresh = RefreshToken.for_user(user)
             return Response({
@@ -137,6 +129,7 @@ class CustomTokenObtainPairView(APIView):
             })
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
 
 class MigrateView(APIView):
     def get(self, request):
