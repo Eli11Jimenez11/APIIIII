@@ -3,8 +3,9 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from django.http import JsonResponse
 from rest_framework import status
-from rest_framework_simplejwt.tokens import RefreshToken
-from .serializers import CustomAuthTokenSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+from .serializers import CustomTokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 from django.contrib.auth import authenticate
 from django.core.mail import send_mail
 from django.conf import settings
@@ -115,20 +116,8 @@ class PasswordResetVerifyView(APIView):
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
     
     
-class CustomTokenObtainPairView(APIView):
-    def post(self, request, *args, **kwargs):
-        serializer = CustomAuthTokenSerializer(data=request.data)
-
-        if serializer.is_valid():
-            user = serializer.validated_data['user']
-
-            refresh = RefreshToken.for_user(user)
-            return Response({
-                'access': str(refresh.access_token),
-                'refresh': str(refresh),
-            })
-
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
 
 
 class MigrateView(APIView):

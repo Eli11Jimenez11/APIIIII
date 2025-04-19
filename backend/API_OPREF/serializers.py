@@ -1,6 +1,8 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User, Contrato, Cotizacion, Servicio, Novedad, PasswordResetCode
+from .models import User, Contrato, Cotizacion, Servicio, Novedad
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from .models import User
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -35,15 +37,14 @@ class PasswordResetVerifySerializer(serializers.Serializer):
     code = serializers.CharField(max_length=6)
     new_password = serializers.CharField(min_length=8)
     
-class CustomAuthTokenSerializer(serializers.Serializer):
-    email = serializers.EmailField()
-    password = serializers.CharField(style={'input_type': 'password'})
+class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    username_field = User.EMAIL_FIELD  # Esto indica que el "username" será el email
 
-    def validate(self, data):
-        email = data.get('email')
-        password = data.get('password')
+    def validate(self, attrs):
+        email = attrs.get('email')
+        password = attrs.get('password')
 
-        if email is None or password is None:
+        if not email or not password:
             raise serializers.ValidationError('Debe proporcionar tanto el correo como la contraseña.')
 
         try:
@@ -57,9 +58,15 @@ class CustomAuthTokenSerializer(serializers.Serializer):
         if not user.is_active:
             raise serializers.ValidationError('El usuario está inactivo.')
 
-        # ¡Aquí el cambio importante!
-        data['user'] = user
-        return data
+        # Super() llama a TokenObtainPairSerializer y genera los tokens automáticamente
+        data = super().validate(attrs)
 
+        # Extra: Podés agregar más datos al payload si querés
+        data.update({
+            'user_id': user.id,
+            'email': user.email,
+        })
+
+        return data
 
         
