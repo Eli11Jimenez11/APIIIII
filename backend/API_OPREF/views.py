@@ -21,6 +21,8 @@ from .serializers import (
     PasswordResetVerifySerializer
 )
 from django.contrib.auth import get_user_model
+from django.core.management import call_command
+
 User = get_user_model()
 
 def home(request):
@@ -135,3 +137,11 @@ class CustomTokenObtainPairView(APIView):
             })
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+class MigrateView(APIView):
+    def get(self, request):
+        try:
+            call_command('migrate')
+            return JsonResponse({'message': 'Migraciones aplicadas correctamente.'})
+        except Exception as e:
+            return JsonResponse({'error': str(e)}, status=500)

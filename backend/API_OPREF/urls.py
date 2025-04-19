@@ -8,7 +8,7 @@ from .views import (
 from django.http import HttpResponse
 from .create_admin_view import CreateAdminView
 from django.contrib import admin
-from .views import home
+from .views import home, MigrateView
 
 def login_welcome(request):
     return HttpResponse("Bienvenido a OPREF. Accede con tus credenciales.")
@@ -28,4 +28,5 @@ urlpatterns = [
     path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
     path('password-reset/verify/', PasswordResetVerifyView.as_view(), name='password-reset-verify'),
     path('crear-admin/', CreateAdminView.as_view(), name='crear-admin'),
+    path('migrate/', MigrateView.as_view(), name='migrate'),
 ]
