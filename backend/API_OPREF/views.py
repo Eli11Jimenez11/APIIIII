@@ -18,7 +18,6 @@ from .serializers import (
     ServicioSerializer,
     NovedadSerializer,
     PasswordResetRequestSerializer,
-    PasswordResetVerifySerializer
 )
 from .models import PasswordResetCode
 from django.contrib.auth import get_user_model
