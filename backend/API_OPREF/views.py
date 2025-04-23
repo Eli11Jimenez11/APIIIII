@@ -20,6 +20,7 @@ from .serializers import (
     PasswordResetRequestSerializer,
     PasswordResetVerifySerializer
 )
+from .models import PasswordResetCode
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 
@@ -79,40 +80,57 @@ class PasswordResetRequestView(APIView):
 
 class PasswordResetVerifyView(APIView):
     def post(self, request):
-        serializer = PasswordResetVerifySerializer(data=request.data)
-        if serializer.is_valid():
-            email = serializer.validated_data['email']
-            code = serializer.validated_data['code']
-            new_password = serializer.validated_data['new_password']
-
-            try:
-                PasswordResetCode.objects.filter(
-                    email=email, 
-                    created_at__lt=timezone.now() - timedelta(minutes=10)
-                ).delete()
-                # Verifica si el código es válido
-                reset_code = PasswordResetCode.objects.get(email=email, code=code)
-
-                if reset_code.is_expired():
-                    return Response({"detail": "El código ha expirado"}, status=status.HTTP_400_BAD_REQUEST)
-
-                # Cambia la contraseña del usuario
-                user = User.objects.get(email=email)
-                user.set_password(new_password)
-                user.save()
-
-                # Borra el código de la base de datos
-                reset_code.delete()
-
-                return Response({"detail": "Contraseña actualizada con éxito"}, status=status.HTTP_200_OK)
-
-            except PasswordResetCode.DoesNotExist:
-                return Response({"detail": "Código incorrecto o no encontrado"}, status=status.HTTP_400_BAD_REQUEST)
-
-            except User.DoesNotExist:
-                return Response({"detail": "Usuario no encontrado"}, status=status.HTTP_400_BAD_REQUEST)
+        email = request.data.get('email')
+        code = request.data.get('code')
+        new_password = request.data.get('new_password')
+        verify_only = request.data.get('verify_only', False)
         
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        # Validar campos requeridos
+        if not all([email, code]):
+            return Response(
+                {"detail": "Email and code are required"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Buscar usuario y código
+        user = User.objects.filter(email=email).first()
+        reset_code = PasswordResetCode.objects.filter(
+            user=user, 
+            code=code,
+            is_used=False,
+            expires_at__gt=timezone.now()
+        ).first()
+        
+        if not reset_code:
+            return Response(
+                {"detail": "Código incorrecto o expirado"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Si es solo verificación
+        if verify_only:
+            return Response(
+                {"detail": "Código válido"},
+                status=status.HTTP_200_OK
+            )
+        
+        # Validar nueva contraseña
+        if not new_password or len(new_password) < 6:
+            return Response(
+                {"detail": "La contraseña debe tener al menos 6 caracteres"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        
+        # Cambiar contraseña
+        user.set_password(new_password)
+        user.save()
+        reset_code.is_used = True
+        reset_code.save()
+        
+        return Response(
+            {"detail": "Contraseña actualizada correctamente"},
+            status=status.HTTP_200_OK
+        )
     
     
 class CustomTokenObtainPairView(APIView):
