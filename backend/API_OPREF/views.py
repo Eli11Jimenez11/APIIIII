@@ -31,7 +31,7 @@ def home(request):
     try:
         send_mail(
             subject='Prueba SMTP desde Render',
-            message='Este es un email de prueba',
+            message='Este es email de prueba',
             from_email=settings.EMAIL_HOST_USER,
             recipient_list=['eli11jimenez11@gmail.com'],
             fail_silently=False
