@@ -59,16 +59,31 @@ class PasswordResetRequestView(APIView):
 
             # Borrar códigos anteriores y guardar nuevo
             PasswordResetCode.objects.filter(email=email).delete()
-            PasswordResetCode.objects.create(email=email, code=code)
-
-            # Enviar correo
-            send_mail(
-                'Código de recuperación de contraseña',
-                f'Tu código de recuperación es: {code}',
-                settings.DEFAULT_FROM_EMAIL,
-                [email],
-                fail_silently=False
+            PasswordResetCode.objects.create(
+            email=email, 
+            code=code,
+            expires_at=timezone.now() + timedelta(minutes=10)
             )
+            
+        def test_email():
+            # Enviar correo
+            try:
+                send_mail(
+                    'Código de recuperación de contraseña',
+                    f'Tu código de recuperación es: {code}',
+                    settings.DEFAULT_FROM_EMAIL,
+                    [email],
+                    fail_silently=False
+                )
+            except Exception as e:
+                # Log the error
+                print(f"Error sending email: {str(e)}")
+                return Response(
+                    {'error': f'Error enviando correo: {str(e)}'},
+                    status=status.HTTP_500_INTERNAL_SERVER_ERROR
+                )
+            
+            test_email()
 
             return Response({'message': 'Se ha enviado un código de recuperación a tu correo.'}, status=status.HTTP_200_OK)
         
