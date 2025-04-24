@@ -36,7 +36,7 @@ def home(request):
             recipient_list=['eli11jimenez11@gmail.com'],
             fail_silently=False
         )
-        return JsonResponse({'status': 'success'})
+        return JsonResponse({'status': 'successs'})
     except Exception as e:
         return JsonResponse({'error': str(e)}, status=500)
 
