@@ -24,8 +24,20 @@ from django.core.management import call_command
 
 User = get_user_model()
 
+
 def home(request):
-    return JsonResponse({'mensaje': 'API OPREF funcionandoooo correctamente 🚀'})
+    try:
+        send_mail(
+            'Prueba desde API en Render',
+            'Este es un mensaje de prueba',
+            settings.DEFAULT_FROM_EMAIL,
+            ['tu-email-de-prueba@gmail.com'],  # Cambia esto
+            fail_silently=False
+        )
+        return JsonResponse({'status': 'Email enviado!'})
+    except Exception as e:
+        return JsonResponse({'error': str(e)}, status=500)
+
 
 class ContratoViewSet(viewsets.ModelViewSet):
     queryset = Contrato.objects.all()
