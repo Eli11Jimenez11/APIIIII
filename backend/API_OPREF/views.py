@@ -92,6 +92,11 @@ class PasswordResetVerifyView(APIView):
         
         # Buscar usuario y código
         user = User.objects.filter(email=email).first()
+        if not user:
+            return Response(
+            {"detail": "Usuario no encontrado"},
+            status=status.HTTP_404_NOT_FOUND
+        )
         reset_code = PasswordResetCode.objects.filter(
             email=email, 
             code=code,
