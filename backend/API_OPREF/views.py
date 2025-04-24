@@ -60,32 +60,30 @@ class PasswordResetRequestView(APIView):
             # Borrar códigos anteriores y guardar nuevo
             PasswordResetCode.objects.filter(email=email).delete()
             PasswordResetCode.objects.create(
-            email=email, 
-            code=code,
-            expires_at=timezone.now() + timedelta(minutes=10)
+                email=email, 
+                code=code,
+                expires_at=timezone.now() + timedelta(minutes=10)
             )
             
-        def test_email():
-            # Enviar correo
+            # Enviar correo (esto debe estar al mismo nivel que el try)
             try:
                 send_mail(
-                    'Código de recuperación de contraseña',
-                    f'Tu código de recuperación es: {code}',
+                    'Código de recuperación de contraseña - OPREF',
+                    f'Tu código de recuperación es: {code}\n\nEste código expirará en 10 minutos.',
                     settings.DEFAULT_FROM_EMAIL,
                     [email],
                     fail_silently=False
                 )
-            except Exception as e:
-                # Log the error
-                print(f"Error sending email: {str(e)}")
                 return Response(
-                    {'error': f'Error enviando correo: {str(e)}'},
+                    {'message': 'Se ha enviado un código de recuperación a tu correo.'}, 
+                    status=status.HTTP_200_OK
+                )
+            except Exception as e:
+                print(f"Error enviando email: {str(e)}")
+                return Response(
+                    {'error': 'Error al enviar el correo. Por favor intenta más tarde.'},
                     status=status.HTTP_500_INTERNAL_SERVER_ERROR
                 )
-            
-            test_email()
-
-            return Response({'message': 'Se ha enviado un código de recuperación a tu correo.'}, status=status.HTTP_200_OK)
         
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
