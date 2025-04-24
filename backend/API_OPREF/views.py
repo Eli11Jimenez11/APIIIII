@@ -19,8 +19,6 @@ from .serializers import (
     NovedadSerializer,
     PasswordResetRequestSerializer,
 )
-
-from .models import PasswordResetCode
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
 
@@ -95,7 +93,7 @@ class PasswordResetVerifyView(APIView):
         # Buscar usuario y código
         user = User.objects.filter(email=email).first()
         reset_code = PasswordResetCode.objects.filter(
-            user=user, 
+            email=email, 
             code=code,
             is_used=False,
             expires_at__gt=timezone.now()
