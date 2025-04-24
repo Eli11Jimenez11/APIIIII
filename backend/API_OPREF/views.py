@@ -19,6 +19,7 @@ from .serializers import (
     NovedadSerializer,
     PasswordResetRequestSerializer,
 )
+
 from .models import PasswordResetCode
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
@@ -26,7 +27,7 @@ from django.core.management import call_command
 User = get_user_model()
 
 def home(request):
-    return JsonResponse({'mensaje': 'API OPREF funcionando correctamente 🚀'})
+    return JsonResponse({'mensaje': 'API OPREF funcionandoooo correctamente 🚀'})
 
 class ContratoViewSet(viewsets.ModelViewSet):
     queryset = Contrato.objects.all()
