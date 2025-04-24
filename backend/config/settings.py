@@ -1,5 +1,6 @@
 from pathlib import Path
 import os
+from decouple import config
 import dj_database_url
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -9,18 +10,27 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.2/howto/deployment/checklist/
 
-# SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = os.environ.get('SECRET_KEY', default='ypur secret key')  # Se obtiene de las variables de entorno
 
-# SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = 'RENDER' not in os.environ  # Deshabilita debug en producción
 
+# SECRET_KEY desde variables de entorno
+SECRET_KEY = os.environ.get('SECRET_KEY', 'fallback-secret-key')
+
+# Desactivar debug en producción
+DEBUG = os.environ.get('RENDER') is None  # Esto es True en local, False en Render
+
+# Allowed hosts
 ALLOWED_HOSTS = []
 
-# Configuración para Render
+# Si está en Render, agrega el hostname de Render
 RENDER_EXTERNAL_HOSTNAME = os.environ.get('RENDER_EXTERNAL_HOSTNAME')
 if RENDER_EXTERNAL_HOSTNAME:
     ALLOWED_HOSTS.append(RENDER_EXTERNAL_HOSTNAME)
+
+# Para desarrollo local puedes dejarlo abierto
+if DEBUG:
+    ALLOWED_HOSTS.append('localhost')
+    ALLOWED_HOSTS.append('127.0.0.1')
+
 
 
 # Application definition

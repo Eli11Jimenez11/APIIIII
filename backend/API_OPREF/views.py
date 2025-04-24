@@ -189,3 +189,7 @@ def env_check(request):
         )
     }
     return JsonResponse(env_vars)
+
+
+def health_check(request):
+    return JsonResponse({"status": "ok"})
