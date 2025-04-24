@@ -2,8 +2,15 @@ from django.urls import path, include
 from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 from rest_framework.routers import DefaultRouter
 from .views import (
-    ContratoViewSet, CotizacionViewSet, ServicioViewSet, NovedadViewSet,
-    PasswordResetRequestView, PasswordResetVerifyView, CustomTokenObtainPairView
+    ContratoViewSet,
+    CotizacionViewSet,
+    ServicioViewSet,
+    NovedadViewSet,
+    PasswordResetRequestView,
+    CustomTokenObtainPairView,
+    PasswordResetRequestView,
+    PasswordResetCodeValidationView,
+    PasswordResetConfirmView,
 )
 from django.http import HttpResponse
 from .create_admin_view import CreateAdminView
@@ -25,8 +32,9 @@ urlpatterns = [
     path('', include(router.urls)),  # Rutas de la API
     path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('refresh/', TokenRefreshView.as_view(), name='token_refresh'), # La vista personalizada para la página de login
-    path('password-reset/', PasswordResetRequestView.as_view(), name='password-reset-request'),
-    path('password-reset/verify/', PasswordResetVerifyView.as_view(), name='password-reset-verify'),
+    path('password-reset-request/', PasswordResetRequestView.as_view()),
+    path('password-reset-validate/', PasswordResetCodeValidationView.as_view()),
+    path('password-reset-confirm/', PasswordResetConfirmView.as_view()),
     path('crear-admin/', CreateAdminView.as_view(), name='crear-admin'),
     path('migrate/', MigrateView.as_view(), name='migrate'),
     path('env-check/', env_check, name='env_check'),

@@ -32,8 +32,8 @@ def home(request):
         send_mail(
             subject='Prueba SMTP desde Render',
             message='Este es un email de prueba',
-            from_email=settings.EMAIL_HOST_USER,  # Solo email
-            recipient_list=['eli11jimenez11@gmail.com'],  # Cambia esto
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=['eli11jimenez11@gmail.com'],
             fail_silently=False
         )
         return JsonResponse({'status': 'success'})
@@ -41,6 +41,7 @@ def home(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
+# CRUD Views
 class ContratoViewSet(viewsets.ModelViewSet):
     queryset = Contrato.objects.all()
     serializer_class = ContratoSerializer
@@ -57,70 +58,79 @@ class NovedadViewSet(viewsets.ModelViewSet):
     queryset = Novedad.objects.all()
     serializer_class = NovedadSerializer
 
+
+# Password Reset: Solicitar código
 class PasswordResetRequestView(APIView):
     def post(self, request):
         serializer = PasswordResetRequestSerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
+
         email = serializer.validated_data['email']
-        
+
         try:
             user = User.objects.get(email=email)
         except User.DoesNotExist:
-            # No reveles que el email no existe por seguridad
             return Response(
                 {'message': 'Si este email existe en nuestro sistema, recibirás un código de recuperación'},
                 status=status.HTTP_200_OK
             )
 
-        # Generar código
         code = get_random_string(length=6, allowed_chars='0123456789')
-        
-        # Eliminar códigos previos
         PasswordResetCode.objects.filter(email=email).delete()
-        
-        # Crear nuevo código
-        reset_code = PasswordResetCode.objects.create(
+
+        PasswordResetCode.objects.create(
             email=email,
             code=code,
             expires_at=timezone.now() + timedelta(minutes=10)
         )
 
-        # Enviar email
-        try:
-            send_mail(
-                'Código de recuperación - OPREF',
-                f'Tu código de recuperación es: {code}\n\nVálido por 10 minutos.',
-                settings.EMAIL_HOST_USER,  # Usa el email directamente
-                [email],
-                fail_silently=False
-            )
-            return Response(
-                {'message': 'Si este email existe en nuestro sistema, recibirás un código de recuperación'},
-                status=status.HTTP_200_OK
-            )
-        except Exception as e:
-            print(f"Error enviando email: {str(e)}")
-            return Response(
-                {'error': 'Error al enviar el correo. Por favor intenta más tarde.'},
-                status=status.HTTP_500_INTERNAL_SERVER_ERROR
-            )
+        return Response(
+            {'message': 'Código generado correctamente', 'code': code},
+            status=status.HTTP_200_OK
+        )
 
 
-
-class PasswordResetVerifyView(APIView):
+# Nuevo: Validar solo el código
+class PasswordResetCodeValidationView(APIView):
     def post(self, request):
         serializer = PasswordResetVerifySerializer(data=request.data)
         if not serializer.is_valid():
             return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
-            
+
+        email = serializer.validated_data['email']
+        code = serializer.validated_data['code']
+
+        reset_code = PasswordResetCode.objects.filter(
+            email=email,
+            code=code,
+            is_used=False,
+            expires_at__gt=timezone.now()
+        ).first()
+
+        if not reset_code:
+            return Response(
+                {"detail": "Código incorrecto o expirado"},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+
+        return Response({"detail": "Código válido"}, status=status.HTTP_200_OK)
+
+
+# Nuevo: Confirmar cambio de contraseña
+class PasswordResetConfirmView(APIView):
+    def post(self, request):
+        serializer = PasswordResetVerifySerializer(data=request.data)
+        if not serializer.is_valid():
+            return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
         email = serializer.validated_data['email']
         code = serializer.validated_data['code']
         new_password = serializer.validated_data.get('new_password')
-        verify_only = request.data.get('verify_only', False)
 
-        # Buscar usuario y código
+        if not new_password:
+            return Response({"detail": "Nueva contraseña requerida."}, status=status.HTTP_400_BAD_REQUEST)
+
         user = User.objects.filter(email=email).first()
         reset_code = PasswordResetCode.objects.filter(
             email=email,
@@ -135,17 +145,9 @@ class PasswordResetVerifyView(APIView):
                 status=status.HTTP_400_BAD_REQUEST
             )
 
-        if verify_only:
-            return Response(
-                {"detail": "Código válido"},
-                status=status.HTTP_200_OK
-            )
-
-        # Cambiar contraseña
         user.set_password(new_password)
         user.save()
-        
-        # Marcar código como usado
+
         reset_code.is_used = True
         reset_code.save()
 
@@ -153,21 +155,18 @@ class PasswordResetVerifyView(APIView):
             {"detail": "Contraseña actualizada correctamente"},
             status=status.HTTP_200_OK
         )
-    
-    
+
+
 class CustomTokenObtainPairView(APIView):
     def post(self, request, *args, **kwargs):
         serializer = CustomAuthTokenSerializer(data=request.data)
-
         if serializer.is_valid():
             user = serializer.validated_data['user']
-
             refresh = RefreshToken.for_user(user)
             return Response({
                 'access': str(refresh.access_token),
                 'refresh': str(refresh),
             })
-
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
 
@@ -178,15 +177,15 @@ class MigrateView(APIView):
             return JsonResponse({'message': 'Migraciones aplicadas correctamente.'})
         except Exception as e:
             return JsonResponse({'error': str(e)}, status=500)
-        
+
+
 def env_check(request):
     env_vars = {
         'EMAIL_HOST_USER_EXISTS': 'EMAIL_HOST_USER' in os.environ,
         'EMAIL_HOST_PASSWORD_EXISTS': 'EMAIL_HOST_PASSWORD' in os.environ,
         'IS_RENDER': 'RENDER' in os.environ,
         'SMTP_CONFIGURED': all(
-            key in os.environ 
-            for key in ['EMAIL_HOST_USER', 'EMAIL_HOST_PASSWORD']
+            key in os.environ for key in ['EMAIL_HOST_USER', 'EMAIL_HOST_PASSWORD']
         )
     }
     return JsonResponse(env_vars)
