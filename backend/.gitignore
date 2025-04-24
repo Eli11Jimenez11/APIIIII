@@ -1,0 +1,19 @@
+# Ignorar entorno virtual
+.venv/
+venv/
+ENV/
+OPREF/
+Include/
+Lib/
+Scripts/
+
+# Ignorar archivos temporales
+__pycache__/
+*.pyc
+*.log
+
+# Base de datos (si no querés subirla)
+db.sqlite3
+
+# Variables de entorno
+.env
