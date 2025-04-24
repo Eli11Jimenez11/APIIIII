@@ -18,6 +18,7 @@ from .serializers import (
     ServicioSerializer,
     NovedadSerializer,
     PasswordResetRequestSerializer,
+    PasswordResetVerifySerializer
 )
 from django.contrib.auth import get_user_model
 from django.core.management import call_command
