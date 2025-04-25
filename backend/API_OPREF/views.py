@@ -31,21 +31,8 @@ User = get_user_model()
 
 
 def home(request):
-    """
-    Vista de prueba para enviar un correo vía SMTP (puede fallar si no hay configuración SMTP).
-    """
-    try:
-        send_mail(
-            subject='Prueba SMTP desde Render',
-            message='Este es un email de prueba',
-            from_email=settings.EMAIL_HOST_USER,
-            recipient_list=['eli11jimenez11@gmail.com'],
-            fail_silently=False
-        )
-        return JsonResponse({'status': 'success'})
-    except Exception:
-        logger.error("Error en la vista home", exc_info=True)
-        return JsonResponse({'error': 'Error interno'}, status=500)
+    print("Home view accessed")
+    return JsonResponse({'message': 'Bienvenido a la API de OPREF'})
 
 
 # CRUD Views para modelos básicos
