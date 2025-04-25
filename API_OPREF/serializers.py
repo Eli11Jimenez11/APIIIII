@@ -30,10 +30,14 @@ class NovedadSerializer(serializers.ModelSerializer):
 class PasswordResetRequestSerializer(serializers.Serializer):
     email = serializers.EmailField()
 
+class PasswordResetVerifyCodeSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    code = serializers.CharField(max_length=6)
+    
 class PasswordResetVerifySerializer(serializers.Serializer):
     email = serializers.EmailField()
     code = serializers.CharField(max_length=6)
-    new_password = serializers.CharField(min_length=8)
+    password = serializers.CharField(min_length=8)
     
 class CustomAuthTokenSerializer(serializers.Serializer):
     email = serializers.EmailField()
