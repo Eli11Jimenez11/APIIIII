@@ -70,10 +70,6 @@ class NovedadViewSet(viewsets.ModelViewSet):
 
 
 class PasswordResetRequestView(APIView):
-    """
-    Genera un código de recuperación y lo guarda en DB.
-    Devuelve siempre JSON con 'code' o mensaje genérico.
-    """
     permission_classes = []  # acceso público
 
     def post(self, request):
@@ -91,11 +87,6 @@ class PasswordResetRequestView(APIView):
                 expires_at=timezone.now() + timedelta(minutes=10)
             )
 
-            # (Opcional) Enviar correo aquí si tienes SMTP configurado
-            # send_mail(
-            #     'Código de recuperación', f'Tu código es {code}',
-            #     settings.EMAIL_HOST_USER, [email]
-            # )
 
             return Response(
                 {'message': 'Código generado correctamente', 'code': code},
