@@ -27,11 +27,9 @@ router.register(r'servicios', ServicioViewSet)
 router.register(r'novedades', NovedadViewSet)
 
 urlpatterns = [
-    path('', home),  # <<< Esto agrega la raíz
-    path('admin/', admin.site.urls),
-    path('', include(router.urls)),  # Rutas de la API
-    path('login/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
-    path('refresh/', TokenRefreshView.as_view(), name='token_refresh'), # La vista personalizada para la página de login
+    path('', include(router.urls)),
+    path('token/', CustomTokenObtainPairView.as_view(), name='token_obtain_pair'),
+    path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
     path('password-reset-request/', PasswordResetRequestView.as_view()),
     path('password-reset-validate/', PasswordResetCodeValidationView.as_view()),
     path('password-reset-confirm/', PasswordResetConfirmView.as_view()),

@@ -142,10 +142,7 @@ DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 
 # Configuración de CORS (Si tu frontend está en un dominio diferente)
-CORS_ALLOWED_ORIGINS = [
-    "https://your-frontend-domain.com",  # Asegúrate de poner el dominio correcto
-    # Puedes agregar otros dominios si es necesario
-]
+CORS_ALLOWED_ORIGINS = True
 
 
 # Configuración de seguridad en Render
