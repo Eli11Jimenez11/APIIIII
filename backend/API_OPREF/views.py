@@ -57,6 +57,10 @@ class NovedadViewSet(viewsets.ModelViewSet):
 
 
 class PasswordResetRequestView(APIView):
+    """
+    Genera un código de recuperación y lo guarda en DB.
+    Devuelve siempre JSON con 'code' o mensaje genérico.
+    """
     permission_classes = []  # acceso público
 
     def post(self, request):
@@ -74,6 +78,12 @@ class PasswordResetRequestView(APIView):
                 expires_at=timezone.now() + timedelta(minutes=10)
             )
 
+            # (Opcional) Enviar correo aquí si tienes SMTP configurado
+            # send_mail(
+            #     'Código de recuperación', f'Tu código es {code}',
+            #     settings.EMAIL_HOST_USER, [email]
+            # )
+
             return Response(
                 {'message': 'Código generado correctamente', 'code': code},
                 status=status.HTTP_200_OK
@@ -90,32 +100,27 @@ class PasswordResetCodeValidationView(APIView):
     """
     Verifica que el código exista, no esté usado y no haya expirado.
     """
-    permission_classes = []  # Sin permisos, acceso público
+    permission_classes = []
 
     def post(self, request):
         try:
-            # Valida los datos de entrada (email y código)
             serializer = PasswordResetVerifySerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)  # Validación de los datos
+            serializer.is_valid(raise_exception=True)
             email = serializer.validated_data['email']
             code = serializer.validated_data['code']
 
-            # Verifica si el código existe y es válido
             exists = PasswordResetCode.objects.filter(
                 email=email,
                 code=code,
-                is_used=False,  # Verifica que no haya sido usado
-                expires_at__gt=timezone.now()  # Verifica que no haya expirado
+                is_used=False,
+                expires_at__gt=timezone.now()
             ).exists()
 
             if not exists:
-                # Si no existe o no es válido, retorna un error 400
                 return Response({'detail': 'Código incorrecto o expirado'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Si el código es válido, retorna una respuesta de éxito
             return Response({'detail': 'Código válido'}, status=status.HTTP_200_OK)
         except Exception:
-            # Manejo de excepciones en caso de error
             logger.error("Error en PasswordResetCodeValidationView", exc_info=True)
             return Response(
                 {'detail': 'Error interno al validar el código.'},
@@ -123,48 +128,40 @@ class PasswordResetCodeValidationView(APIView):
             )
 
 
-
 class PasswordResetConfirmView(APIView):
     """
     Confirma y aplica el cambio de contraseña.
     Requiere 'email', 'code' y 'new_password'.
     """
-    permission_classes = []  # Sin permisos, acceso público
+    permission_classes = []
 
     def post(self, request):
         try:
-            # Deserializar los datos de entrada
             serializer = PasswordResetVerifySerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             email = serializer.validated_data['email']
             code = serializer.validated_data['code']
-            new_password = request.data.get('new_password')  # Obtener la nueva contraseña desde el cuerpo de la solicitud
+            new_password = request.data.get('new_password')
 
-            # Validar que la nueva contraseña esté presente
             if not new_password:
                 return Response({'detail': 'Nueva contraseña requerida.'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Buscar el código de recuperación
             reset_code = PasswordResetCode.objects.filter(
                 email=email,
                 code=code,
                 is_used=False,
-                expires_at__gt=timezone.now()  # Verificar si el código ha expirado
+                expires_at__gt=timezone.now()
             ).first()
 
             if not reset_code:
                 return Response({'detail': 'Código incorrecto o expirado'}, status=status.HTTP_400_BAD_REQUEST)
 
-            # Buscar al usuario por email
             user = User.objects.filter(email=email).first()
             if not user:
                 return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-            # Cambiar la contraseña del usuario
             user.set_password(new_password)
             user.save()
-
-            # Marcar el código como usado
             reset_code.is_used = True
             reset_code.save()
 
@@ -175,7 +172,6 @@ class PasswordResetConfirmView(APIView):
                 {'detail': 'Error interno al confirmar contraseña.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
             )
-
 
 
 class CustomTokenObtainPairView(APIView):

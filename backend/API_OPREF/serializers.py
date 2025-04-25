@@ -47,12 +47,11 @@ class CustomAuthTokenSerializer(serializers.Serializer):
         email = data.get('email')
         password = data.get('password')
         
-        if not email or not password:
+        if email is None or password is None:
             logger.debug(f"Faltan credenciales: email={email}, password={'sí' if password else 'no'}")
             raise serializers.ValidationError('Debe proporcionar tanto el correo como la contraseña.')
-
-        # El `request` debe estar en el contexto para poder ser usado por `authenticate`
-        user = authenticate(self.context.get('request'), username=email, password=password)
+        
+        user = authenticate(request=self.context.get('request'), email=email, password=password)
         
         if not user:
             logger.debug(f'Falló autenticación para email: {email}')
@@ -64,7 +63,6 @@ class CustomAuthTokenSerializer(serializers.Serializer):
 
         data['user'] = user
         return data
-
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     username_field = 'email'
