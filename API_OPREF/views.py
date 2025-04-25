@@ -22,8 +22,7 @@ from .serializers import (
     NovedadSerializer,
     PasswordResetRequestSerializer,
     PasswordResetVerifySerializer,
-    CustomAuthTokenSerializer,
-    PasswordResetVerifyCodeSerializer
+    CustomAuthTokenSerializer
 )
 
 # Configurar logger para capturar errores
@@ -32,27 +31,50 @@ User = get_user_model()
 
 
 def home(request):
-    print("Home")
-    return JsonResponse({'message': 'Bienvenido a la API de OPREF'})
+    """
+    Vista de prueba para enviar un correo vía SMTP (puede fallar si no hay configuración SMTP).
+    """
+    try:
+        send_mail(
+            subject='Prueba SMTP desde Render',
+            message='Este es un email de prueba',
+            from_email=settings.EMAIL_HOST_USER,
+            recipient_list=['eli11jimenez11@gmail.com'],
+            fail_silently=False
+        )
+        return JsonResponse({'status': 'success'})
+    except Exception:
+        logger.error("Error en la vista home", exc_info=True)
+        return JsonResponse({'error': 'Error interno'}, status=500)
 
+
+# CRUD Views para modelos básicos
 class ContratoViewSet(viewsets.ModelViewSet):
     queryset = Contrato.objects.all()
     serializer_class = ContratoSerializer
+
 
 class CotizacionViewSet(viewsets.ModelViewSet):
     queryset = Cotizacion.objects.all()
     serializer_class = CotizacionSerializer
 
+
 class ServicioViewSet(viewsets.ModelViewSet):
     queryset = Servicio.objects.all()
     serializer_class = ServicioSerializer
+
 
 class NovedadViewSet(viewsets.ModelViewSet):
     queryset = Novedad.objects.all()
     serializer_class = NovedadSerializer
 
+
 class PasswordResetRequestView(APIView):
-    permission_classes = []
+    """
+    Genera un código de recuperación y lo guarda en DB.
+    Devuelve siempre JSON con 'code' o mensaje genérico.
+    """
+    permission_classes = []  # acceso público
 
     def post(self, request):
         try:
@@ -69,6 +91,12 @@ class PasswordResetRequestView(APIView):
                 expires_at=timezone.now() + timedelta(minutes=10)
             )
 
+            # (Opcional) Enviar correo aquí si tienes SMTP configurado
+            # send_mail(
+            #     'Código de recuperación', f'Tu código es {code}',
+            #     settings.EMAIL_HOST_USER, [email]
+            # )
+
             return Response(
                 {'message': 'Código generado correctamente', 'code': code},
                 status=status.HTTP_200_OK
@@ -82,15 +110,17 @@ class PasswordResetRequestView(APIView):
 
 
 class PasswordResetCodeValidationView(APIView):
+    """
+    Verifica que el código exista, no esté usado y no haya expirado.
+    """
     permission_classes = []
 
     def post(self, request):
         try:
-            serializer = PasswordResetVerifyCodeSerializer(data=request.data)
+            serializer = PasswordResetVerifySerializer(data=request.data)
             serializer.is_valid(raise_exception=True)
             email = serializer.validated_data['email']
             code = serializer.validated_data['code']
-            
 
             exists = PasswordResetCode.objects.filter(
                 email=email,
@@ -104,7 +134,7 @@ class PasswordResetCodeValidationView(APIView):
 
             return Response({'detail': 'Código válido'}, status=status.HTTP_200_OK)
         except Exception:
-            logger.error("Error en PasswordResetVerifyCodeSerializer", exc_info=True)
+            logger.error("Error en PasswordResetCodeValidationView", exc_info=True)
             return Response(
                 {'detail': 'Error interno al validar el código.'},
                 status=status.HTTP_500_INTERNAL_SERVER_ERROR
@@ -112,7 +142,10 @@ class PasswordResetCodeValidationView(APIView):
 
 
 class PasswordResetConfirmView(APIView):
- 
+    """
+    Confirma y aplica el cambio de contraseña.
+    Requiere 'email', 'code' y 'new_password'.
+    """
     permission_classes = []
 
     def post(self, request):
@@ -121,15 +154,14 @@ class PasswordResetConfirmView(APIView):
             serializer.is_valid(raise_exception=True)
             email = serializer.validated_data['email']
             code = serializer.validated_data['code']
-            password = serializer.validated_data('password')
+            new_password = request.data.get('new_password')
 
-            if not password:
+            if not new_password:
                 return Response({'detail': 'Nueva contraseña requerida.'}, status=status.HTTP_400_BAD_REQUEST)
 
             reset_code = PasswordResetCode.objects.filter(
                 email=email,
                 code=code,
-                password=password,
                 is_used=False,
                 expires_at__gt=timezone.now()
             ).first()
@@ -141,7 +173,7 @@ class PasswordResetConfirmView(APIView):
             if not user:
                 return Response({'detail': 'Usuario no encontrado.'}, status=status.HTTP_404_NOT_FOUND)
 
-            user.set_password(password)
+            user.set_password(new_password)
             user.save()
             reset_code.is_used = True
             reset_code.save()
@@ -156,6 +188,9 @@ class PasswordResetConfirmView(APIView):
 
 
 class CustomTokenObtainPairView(APIView):
+    """
+    Obtener pares de tokens JWT personalizados.
+    """
     permission_classes = []
 
     def post(self, request, *args, **kwargs):
