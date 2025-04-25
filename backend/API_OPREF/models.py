@@ -91,7 +91,7 @@ class PasswordResetCode(models.Model):
     expires_at = models.DateTimeField()
 
     def is_expired(self):
-        return timezone.now() > self.created_at + timedelta(minutes=10) 
+        return timezone.now() > self.created_at + timedelta(minutes=30) 
 
     def __str__(self):
         return f"{self.email} - {self.code}"
